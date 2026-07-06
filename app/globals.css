@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+:root {
+  --background: #eef2ea;
+  --foreground: #111513;
+  --ink: #111513;
+  --panel: #f8faf4;
+  --panel-strong: #ffffff;
+  --muted: #58615c;
+  --line: #c8d0c3;
+  --accent: #b23844;
+  --accent-dark: #7f1d2a;
+  --signal: #245f73;
+  --warning: #b66a1f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  color: var(--foreground);
+  background:
+    linear-gradient(90deg, rgb(17 21 19 / 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(17 21 19 / 0.05) 1px, transparent 1px),
+    var(--background);
+  background-size: 48px 48px;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgb(178 56 68 / 0.45);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: white;
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-line {
+    animation: pulse-line 3.5s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-line {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
