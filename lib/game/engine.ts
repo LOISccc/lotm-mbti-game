@@ -92,6 +92,33 @@ export function resolveTurn(
   };
 }
 
+export function resolveAscension(state: PlayerState) {
+  const mbti = state.mbti;
+
+  // 基础成功值
+  let score = 0;
+
+  // 1. 属性贡献
+  score += Object.values(state.stats).reduce((a, b) => a + b, 0);
+
+  // 2. 隐藏压力（越低越好）
+  score -= Object.values(state.hidden).reduce((a, b) => a + b, 0);
+
+  // 3. MBTI修正
+  if (mbti?.includes("N")) score += 2;
+  if (mbti?.includes("J")) score += 1;
+
+  // 4. 随机骰子
+  const dice = Math.floor(Math.random() * 6) + 1;
+  score += dice;
+
+  return {
+    success: score > 15,
+    score,
+    dice
+  };
+}
+
 export function inferMbti(state: PlayerState) {
   const pairs: Array<[string, string]> = [
     ["I", "E"],
@@ -256,4 +283,22 @@ function updatePreferredTags(state: PlayerState, tags: Tag[]): PlayerState {
 function seededRandom(seed: number) {
   const x = Math.sin(seed || 1) * 10000;
   return x - Math.floor(x);
+}
+
+export function resolveAscension(state: PlayerState) {
+  const total =
+    Object.values(state.stats).reduce((a, b) => a + b, 0) -
+    Object.values(state.hidden).reduce((a, b) => a + b, 0);
+
+  const roll = Math.floor(Math.random() * 20) + 1;
+
+  const finalScore = total + roll;
+
+  const success = finalScore > 25;
+
+  return {
+    success,
+    finalScore,
+    roll,
+  };
 }

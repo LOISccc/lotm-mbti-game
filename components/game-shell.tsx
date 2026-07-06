@@ -25,6 +25,7 @@ export function GameShell() {
   const path = useMemo(() => leadingPath(state), [state]);
 
   function choose(choice: "A" | "B") {
+    console.log("CLICK:", choice);
     const result = resolveTurn(state, event, choice);
     setState(result.state);
     setLog((current) => [result.logEntry, ...current].slice(0, 8));
