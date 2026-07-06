@@ -1,30 +1,43 @@
-export type Stage = "ACADEMIC" | "PERSONALITY" | "PATH" | "LIFE" | "ASCENSION";
+export const STAGES = ["ACADEMIC", "PERSONALITY", "PATH", "LIFE", "ASCENSION"] as const;
+export type Stage = (typeof STAGES)[number];
 
-export type StatKey = "insight" | "luck" | "action" | "stability";
-export type HiddenKey = "danger" | "entropy" | "corruption";
-export type MbtiSignal = "I" | "E" | "N" | "S" | "T" | "F" | "J" | "P";
+export const STAT_KEYS = ["insight", "luck", "action", "stability"] as const;
+export type StatKey = (typeof STAT_KEYS)[number];
 
-export type PathName =
-  | "Path of the Fool"
-  | "Path of the Door"
-  | "Path of the Error"
-  | "Path of the Visionary"
-  | "Path of the Warrior"
-  | "Path of the Reader"
-  | "Path of the Hunter"
-  | "Path of the Demoness";
+export const HIDDEN_KEYS = ["danger", "entropy", "corruption"] as const;
+export type HiddenKey = (typeof HIDDEN_KEYS)[number];
 
-export type Tag =
-  | "mystery"
-  | "knowledge"
-  | "danger"
-  | "ritual"
-  | "entity"
-  | "illusion"
-  | "corruption"
-  | "interaction";
+export const MBTI_SIGNALS = ["I", "E", "N", "S", "T", "F", "J", "P"] as const;
+export type MbtiSignal = (typeof MBTI_SIGNALS)[number];
 
-export type EventType = "atomic" | "template" | "key" | "ascension";
+export const PATHS = [
+  "Path of the Fool",
+  "Path of the Door",
+  "Path of the Error",
+  "Path of the Visionary",
+  "Path of the Warrior",
+  "Path of the Reader",
+  "Path of the Hunter",
+  "Path of the Demoness"
+] as const;
+export type PathName = (typeof PATHS)[number];
+
+export const TAGS = [
+  "mystery",
+  "knowledge",
+  "danger",
+  "ritual",
+  "entity",
+  "illusion",
+  "corruption",
+  "interaction"
+] as const;
+export type Tag = (typeof TAGS)[number];
+
+export const EVENT_TYPES = ["atomic", "template", "key", "ascension"] as const;
+export type EventType = (typeof EVENT_TYPES)[number];
+
+export type ChoiceKey = "A" | "B";
 
 export type PlayerStats = Record<StatKey, number>;
 export type HiddenState = Record<HiddenKey, number>;
@@ -96,7 +109,7 @@ export type GameLogEntry = {
   turn: number;
   eventId: string;
   stage: Stage;
-  choice?: "A" | "B";
+  choice?: ChoiceKey;
   text: string;
   dice?: DiceResult;
 };

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CONTENT_POOL } from "@/lib/game/content";
 import { createInitialState, inferMbti, leadingPath, resolveTurn, selectEvent } from "@/lib/game/engine";
-import type { GameEvent, GameLogEntry, PlayerState, Stage } from "@/lib/game/types";
+import type { ChoiceKey, GameEvent, GameLogEntry, PlayerState, Stage } from "@/lib/game/types";
 
 const STAGE_LABELS: Record<Stage, string> = {
   ACADEMIC: "学术偏置",
@@ -24,12 +24,11 @@ export function GameShell() {
   const mbti = useMemo(() => inferMbti(state), [state]);
   const path = useMemo(() => leadingPath(state), [state]);
 
-  function choose(choice: "A" | "B") {
-    console.log("CLICK:", choice);
+  function choose(choice: ChoiceKey) {
     const result = resolveTurn(state, event, choice);
     setState(result.state);
     setLog((current) => [result.logEntry, ...current].slice(0, 8));
-    setEvent(selectEvent(result.state));
+    setEvent(result.event);
     setSaveState("idle");
   }
 

@@ -1,17 +1,19 @@
-import { CONTENT_POOL, PATHS } from "./content";
+import { CONTENT_POOL } from "./content";
 import type {
+  ChoiceKey,
   ChoiceEffects,
   DiceResult,
+  EngineResult,
   GameEvent,
-  GameLogEntry,
   HiddenKey,
   PlayerState,
   Stage,
   StatKey,
   Tag
 } from "./types";
+import { PATHS, STAGES } from "./types";
 
-const STAGE_ORDER: Stage[] = ["ACADEMIC", "PERSONALITY", "PATH", "LIFE", "ASCENSION"];
+const STAGE_ORDER = STAGES;
 
 export function createInitialState(seed = Date.now() % 100000): PlayerState {
   return {
@@ -36,14 +38,20 @@ export function selectEvent(state: PlayerState): GameEvent {
   }
 
   const regularPool = stagePool.filter((event) => event.type !== "key");
-  return weightedPick(regularPool.length > 0 ? regularPool : stagePool, state);
+  const candidatePool = regularPool.length > 0 ? regularPool : stagePool;
+
+  if (candidatePool.length === 0) {
+    throw new Error(`No content events available for stage: ${state.stage}`);
+  }
+
+  return weightedPick(candidatePool, state);
 }
 
 export function resolveTurn(
   state: PlayerState,
   event: GameEvent,
-  choiceKey: "A" | "B"
-): { state: PlayerState; logEntry: GameLogEntry } {
+  choiceKey: ChoiceKey
+): EngineResult {
   const choice = event.choices?.[choiceKey];
   let nextState: PlayerState = {
     ...state,
@@ -81,6 +89,7 @@ export function resolveTurn(
 
   return {
     state: nextState,
+    event: selectEvent(nextState),
     logEntry: {
       turn: nextState.turn,
       eventId: event.id,
@@ -89,33 +98,6 @@ export function resolveTurn(
       text: eventText,
       dice
     }
-  };
-}
-
-export function resolveAscension(state: PlayerState) {
-  const mbti = state.mbti;
-
-  // 基础成功值
-  let score = 0;
-
-  // 1. 属性贡献
-  score += Object.values(state.stats).reduce((a, b) => a + b, 0);
-
-  // 2. 隐藏压力（越低越好）
-  score -= Object.values(state.hidden).reduce((a, b) => a + b, 0);
-
-  // 3. MBTI修正
-  if (mbti?.includes("N")) score += 2;
-  if (mbti?.includes("J")) score += 1;
-
-  // 4. 随机骰子
-  const dice = Math.floor(Math.random() * 6) + 1;
-  score += dice;
-
-  return {
-    success: score > 15,
-    score,
-    dice
   };
 }
 
@@ -142,6 +124,10 @@ export function leadingPath(state: PlayerState) {
 }
 
 function weightedPick(events: GameEvent[], state: PlayerState) {
+  if (events.length === 0) {
+    throw new Error("Cannot select from an empty event pool");
+  }
+
   const weighted = events.map((event) => ({
     event,
     weight: Math.max(1, getEventWeight(event, state))
@@ -283,22 +269,4 @@ function updatePreferredTags(state: PlayerState, tags: Tag[]): PlayerState {
 function seededRandom(seed: number) {
   const x = Math.sin(seed || 1) * 10000;
   return x - Math.floor(x);
-}
-
-export function resolveAscension(state: PlayerState) {
-  const total =
-    Object.values(state.stats).reduce((a, b) => a + b, 0) -
-    Object.values(state.hidden).reduce((a, b) => a + b, 0);
-
-  const roll = Math.floor(Math.random() * 20) + 1;
-
-  const finalScore = total + roll;
-
-  const success = finalScore > 25;
-
-  return {
-    success,
-    finalScore,
-    roll,
-  };
 }
