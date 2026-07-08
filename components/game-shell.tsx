@@ -3,15 +3,29 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CONTENT_POOL } from "@/lib/game/content";
-import { createInitialState, inferMbti, leadingPath, resolveTurn, selectEvent } from "@/lib/game/engine";
-import type { ChoiceKey, GameEvent, GameLogEntry, PlayerState, Stage } from "@/lib/game/types";
+import {
+  createInitialState,
+  getCurrentSequenceName,
+  getMbtiReveal,
+  resolveTurn,
+  selectEvent
+} from "@/lib/game/engine";
+import type { Chapter, ChoiceKey, GameEvent, GameLogEntry, PlayerState } from "@/lib/game/types";
 
-const STAGE_LABELS: Record<Stage, string> = {
-  ACADEMIC: "学术偏置",
-  PERSONALITY: "人格显影",
-  PATH: "路径成形",
-  LIFE: "人生循环",
-  ASCENSION: "飞升结算"
+const CHAPTER_LABELS: Record<Chapter, string> = {
+  GRADUATION: "第一章 高考结束",
+  SUMMER: "第二章 暑假",
+  UNIVERSITY: "第三章 大学",
+  SEQUENCE: "第四章 序列成长",
+  ASCENSION: "第五章 飞升",
+  ENDING: "结局"
+};
+
+const OUTCOME_LABELS = {
+  critical_failure: "大失败",
+  failure: "失败",
+  success: "成功",
+  critical_success: "大成功"
 };
 
 export function GameShell() {
@@ -21,14 +35,18 @@ export function GameShell() {
   const [log, setLog] = useState<GameLogEntry[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
-  const mbti = useMemo(() => inferMbti(state), [state]);
-  const path = useMemo(() => leadingPath(state), [state]);
+  const mbtiReveal = useMemo(() => getMbtiReveal(state), [state]);
+  const sequenceName = useMemo(() => getCurrentSequenceName(state), [state]);
 
   function choose(choice: ChoiceKey) {
+    if (state.chapter === "ENDING") {
+      return;
+    }
+
     const result = resolveTurn(state, event, choice);
     setState(result.state);
-    setLog((current) => [result.logEntry, ...current].slice(0, 8));
     setEvent(result.event);
+    setLog((current) => [result.logEntry, ...current].slice(0, 10));
     setSaveState("idle");
   }
 
@@ -57,67 +75,67 @@ export function GameShell() {
 
   return (
     <main className="min-h-[100dvh] px-4 py-5 text-[var(--ink)] sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-[1440px] gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
+      <div className="mx-auto grid max-w-[1480px] gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
         <section className="relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--panel)] shadow-[0_24px_80px_rgb(36_53_46/0.16)]">
           <div className="absolute inset-x-0 top-0 h-1 bg-[var(--accent)] pulse-line" />
           <div className="grid gap-6 p-5 md:p-8">
             <header className="grid gap-5 border-b border-[var(--line)] pb-6 lg:grid-cols-[1fr_auto]">
               <div>
-                <p className="font-mono text-xs text-[var(--accent-dark)]">CONTENT POOL ENGINE</p>
+                <p className="font-mono text-xs text-[var(--accent-dark)]">LOTM × MBTI ROGUELIKE V2</p>
                 <h1 className="mt-3 max-w-4xl text-4xl font-semibold leading-[1.05] tracking-normal md:text-6xl">
-                  规则不讲故事，规则只决定后果。
+                  我不是在选择序列，我正在成为序列。
                 </h1>
               </div>
-              <div className="grid min-w-48 content-end gap-2 font-mono text-sm text-[var(--muted)]">
+              <div className="grid min-w-56 content-end gap-2 font-mono text-sm text-[var(--muted)]">
                 <span>Turn {state.turn.toString().padStart(2, "0")}</span>
-                <span>MBTI {mbti}</span>
-                <span>{path}</span>
+                <span>{CHAPTER_LABELS[state.chapter]}</span>
+                <span>MBTI {mbtiReveal}</span>
+                <span>{sequenceName}</span>
               </div>
             </header>
 
-            <StageRail activeStage={state.stage} />
+            <ChapterRail activeChapter={state.chapter} />
 
             <article className="grid gap-5 rounded-lg border border-[var(--line)] bg-[var(--panel-strong)] p-5 md:p-7">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-[var(--ink)] px-3 py-1 font-mono text-xs text-white">
-                  {STAGE_LABELS[event.stage]}
+                  {CHAPTER_LABELS[event.chapter]}
                 </span>
                 <span className="rounded-full border border-[var(--line)] px-3 py-1 font-mono text-xs text-[var(--muted)]">
-                  {event.type}
+                  {event.rarity}
                 </span>
-                {event.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-[#e8ece1] px-3 py-1 font-mono text-xs text-[var(--signal)]">
-                    {tag}
-                  </span>
-                ))}
+                <span className="rounded-full bg-[#e8ece1] px-3 py-1 font-mono text-xs text-[var(--signal)]">
+                  strange level {event.strangeLevel}
+                </span>
               </div>
 
-              <p className="max-w-3xl text-2xl font-medium leading-snug md:text-3xl">{event.text}</p>
+              <div>
+                <p className="font-mono text-xs text-[var(--muted)]">{event.scene}</p>
+                <h2 className="mt-2 text-3xl font-semibold leading-tight md:text-4xl">{event.title}</h2>
+              </div>
 
-              {state.ascensionResult ? (
-                <div className="grid gap-3 rounded-lg border border-[var(--line)] bg-[#eef2ea] p-4">
-                  <p className="font-mono text-sm text-[var(--accent-dark)]">
-                    {state.ascensionResult === "success" ? "ASCENSION COMPLETE" : "COLLAPSE RECORDED"}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={restart}
-                    className="w-fit rounded-lg bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition active:translate-y-px"
-                  >
-                    重新开局
-                  </button>
-                </div>
+              <p className="max-w-4xl text-xl leading-9 text-[#26302b]">{event.narrative}</p>
+
+              {state.chapter === "ENDING" ? (
+                <EndingPanel state={state} onRestart={restart} />
               ) : (
                 <div className="grid gap-3 md:grid-cols-2">
-                  <ChoiceButton label="A" text={event.choices?.A.text ?? "继续"} onClick={() => choose("A")} />
-                  <ChoiceButton label="B" text={event.choices?.B.text ?? "等待"} onClick={() => choose("B")} />
+                  {Object.entries(event.choices).map(([key, choice]) => (
+                    <ChoiceButton
+                      key={key}
+                      label={key}
+                      text={choice.text}
+                      tone={choice.tone}
+                      onClick={() => choose(key as ChoiceKey)}
+                    />
+                  ))}
                 </div>
               )}
             </article>
 
             <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
               <p className="text-sm leading-6 text-[var(--muted)]">
-                引擎只处理阶段、权重、骰检和状态。叙事文本来自内容池，LLM 只能渲染，不能改判定。
+                Rule Engine 先于叙事执行。LLM 只能表达结果，不能改写属性、骰检、序列或结局。
               </p>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -133,14 +151,14 @@ export function GameShell() {
                   onClick={restart}
                   className="rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-semibold transition hover:bg-white active:translate-y-px"
                 >
-                  重置
+                  重新开始
                 </button>
               </div>
             </div>
 
             {saveState === "error" ? (
               <p className="rounded-lg border border-[var(--warning)] bg-[#fff8e8] px-4 py-3 text-sm text-[#73410f]">
-                未配置 Supabase 环境变量，或保存失败。先复制 `.env.example` 到 `.env.local` 并填入项目配置。
+                Supabase 尚未配置或保存失败。请检查 `.env.local` 和 `game_runs` 表。
               </p>
             ) : null}
             {saveState === "saved" ? (
@@ -151,8 +169,9 @@ export function GameShell() {
           </div>
         </section>
 
-        <aside className="grid gap-5 lg:sticky lg:top-5 lg:self-start">
+        <aside className="grid gap-5 xl:sticky xl:top-5 xl:self-start">
           <StatePanel state={state} />
+          <MemoryPanel state={state} />
           <PoolPanel activeEvent={event} />
           <LogPanel log={log} />
         </aside>
@@ -161,40 +180,53 @@ export function GameShell() {
   );
 }
 
-function StageRail({ activeStage }: { activeStage: Stage }) {
-  const stages = Object.keys(STAGE_LABELS) as Stage[];
-  const activeIndex = stages.indexOf(activeStage);
+function ChapterRail({ activeChapter }: { activeChapter: Chapter }) {
+  const chapters = Object.keys(CHAPTER_LABELS) as Chapter[];
+  const activeIndex = chapters.indexOf(activeChapter);
 
   return (
-    <div className="grid gap-2 sm:grid-cols-5">
-      {stages.map((stage, index) => (
+    <div className="grid gap-2 md:grid-cols-6">
+      {chapters.map((chapter, index) => (
         <div
-          key={stage}
+          key={chapter}
           className={`rounded-lg border px-3 py-3 ${
             index <= activeIndex
               ? "border-[var(--accent)] bg-[#f5dde0] text-[var(--accent-dark)]"
               : "border-[var(--line)] bg-[#edf1e7] text-[var(--muted)]"
           }`}
         >
-          <p className="font-mono text-[11px]">{`S${index}`}</p>
-          <p className="mt-1 text-sm font-semibold">{STAGE_LABELS[stage]}</p>
+          <p className="font-mono text-[11px]">{`CH${index + 1}`}</p>
+          <p className="mt-1 text-sm font-semibold leading-snug">{CHAPTER_LABELS[chapter]}</p>
         </div>
       ))}
     </div>
   );
 }
 
-function ChoiceButton({ label, text, onClick }: { label: string; text: string; onClick: () => void }) {
+function ChoiceButton({
+  label,
+  text,
+  tone,
+  onClick
+}: {
+  label: string;
+  text: string;
+  tone: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group grid min-h-28 grid-cols-[auto_1fr] items-start gap-4 rounded-lg border border-[var(--line)] bg-[#eef2ea] p-4 text-left transition hover:border-[var(--accent)] hover:bg-[#f8e7e9] active:translate-y-px"
+      className="group grid min-h-32 grid-cols-[auto_1fr] items-start gap-4 rounded-lg border border-[var(--line)] bg-[#eef2ea] p-4 text-left transition hover:border-[var(--accent)] hover:bg-[#f8e7e9] active:translate-y-px"
     >
       <span className="grid size-10 place-items-center rounded-lg bg-[var(--ink)] font-mono text-sm font-semibold text-white group-hover:bg-[var(--accent)]">
         {label}
       </span>
-      <span className="text-lg font-semibold leading-snug">{text}</span>
+      <span className="grid gap-2">
+        <span className="text-lg font-semibold leading-snug">{text}</span>
+        <span className="font-mono text-xs text-[var(--muted)]">{tone}</span>
+      </span>
     </button>
   );
 }
@@ -203,13 +235,19 @@ function StatePanel({ state }: { state: PlayerState }) {
   return (
     <section className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5">
       <h2 className="text-lg font-semibold">状态仪表</h2>
-      <MeterGroup title="Visible stats" values={state.stats} />
-      <MeterGroup title="Hidden pressure" values={state.hidden} danger />
+      <MeterGroup title="公开属性" values={state.stats} />
+      <MeterGroup title="世界倾向" values={state.worldAffinity} accent />
+      <div className="mt-5 rounded-lg border border-dashed border-[var(--line)] p-3">
+        <p className="font-mono text-xs text-[var(--muted)]">隐藏属性仅参与判定</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+          curiosity / obsession / sanity / luck / destiny / faith / loneliness 不直接暴露给玩家。
+        </p>
+      </div>
     </section>
   );
 }
 
-function MeterGroup({ title, values, danger = false }: { title: string; values: Record<string, number>; danger?: boolean }) {
+function MeterGroup({ title, values, accent = false }: { title: string; values: Record<string, number>; accent?: boolean }) {
   const max = Math.max(6, ...Object.values(values));
 
   return (
@@ -223,8 +261,8 @@ function MeterGroup({ title, values, danger = false }: { title: string; values: 
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-[#dce3d6]">
             <div
-              className={`h-full rounded-full ${danger ? "bg-[var(--accent)]" : "bg-[var(--signal)]"}`}
-              style={{ width: `${Math.min(100, (value / max) * 100)}%` }}
+              className={`h-full rounded-full ${accent ? "bg-[var(--accent)]" : "bg-[var(--signal)]"}`}
+              style={{ width: `${Math.min(100, (Math.max(0, value) / max) * 100)}%` }}
             />
           </div>
         </div>
@@ -233,16 +271,44 @@ function MeterGroup({ title, values, danger = false }: { title: string; values: 
   );
 }
 
+function MemoryPanel({ state }: { state: PlayerState }) {
+  const npcCount = Object.keys(state.npcMemory).length;
+  const itemCount = Object.keys(state.inventory).length;
+
+  return (
+    <section className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5">
+      <h2 className="text-lg font-semibold">长期记忆</h2>
+      <div className="mt-4 grid grid-cols-3 gap-3">
+        <StatTile label="NPC" value={npcCount} />
+        <StatTile label="Items" value={itemCount} />
+        <StatTile label="Tags" value={state.tags.length} />
+      </div>
+      <div className="mt-4 grid gap-2">
+        {state.eventMemory.slice(0, 3).map((memory) => (
+          <p key={`${memory.eventId}-${memory.choice}`} className="rounded-lg border border-[var(--line)] bg-[#eef2ea] p-3 text-sm leading-6">
+            {memory.summary}
+          </p>
+        ))}
+        {state.eventMemory.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-[var(--line)] p-3 text-sm text-[var(--muted)]">
+            世界还没有留下足够记忆。
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 function PoolPanel({ activeEvent }: { activeEvent: GameEvent }) {
   return (
     <section className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5">
       <h2 className="text-lg font-semibold">内容池</h2>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <StatTile label="Total events" value={CONTENT_POOL.length} />
-        <StatTile label="Active event" value={activeEvent.id} />
+        <StatTile label="Events" value={CONTENT_POOL.length} />
+        <StatTile label="Active" value={activeEvent.id} />
       </div>
       <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-        权重 = base + pathBonus + tagMatch - repetitionPenalty。关键事件只在 trigger 满足后进入选择。
+        候选池由章节、Tag、Trigger、世界倾向、人格倾向、重复惩罚共同决定。命运事件由 Engine 强制触发。
       </p>
     </section>
   );
@@ -264,25 +330,66 @@ function LogPanel({ log }: { log: GameLogEntry[] }) {
       <div className="mt-4 grid gap-3">
         {log.length === 0 ? (
           <p className="rounded-lg border border-dashed border-[var(--line)] p-4 text-sm text-[var(--muted)]">
-            做出第一个选择后，这里会记录阶段、选项和骰检结果。
+            做出选择后，这里会记录章节、骰检、序列候选和长期反馈。
           </p>
         ) : (
           log.map((entry) => (
             <div key={`${entry.turn}-${entry.eventId}`} className="rounded-lg border border-[var(--line)] bg-[#eef2ea] p-3">
               <div className="flex items-center justify-between gap-3 font-mono text-[11px] text-[var(--muted)]">
                 <span>TURN {entry.turn}</span>
-                <span>{entry.stage}</span>
+                <span>{entry.chapter}</span>
               </div>
-              <p className="mt-2 text-sm leading-6">{entry.text}</p>
+              <p className="mt-2 text-sm font-semibold">{entry.title}</p>
+              <p className="mt-1 text-sm leading-6">{entry.summary}</p>
               {entry.dice ? (
                 <p className="mt-2 font-mono text-xs text-[var(--accent-dark)]">
-                  d20 {entry.dice.roll} + {entry.dice.stat} = {entry.dice.total} / DC {entry.dice.dc}
+                  D20 {entry.dice.roll} + {entry.dice.modifier} = {entry.dice.finalValue} / DC {entry.dice.dc} ·{" "}
+                  {OUTCOME_LABELS[entry.dice.outcome]}
                 </p>
+              ) : null}
+              {entry.awakenedSequence ? (
+                <p className="mt-2 rounded-lg bg-[#f5dde0] px-3 py-2 text-sm text-[var(--accent-dark)]">
+                  序列开启：{entry.awakenedSequence.name}
+                </p>
+              ) : null}
+              {entry.sequenceCandidates ? (
+                <div className="mt-2 grid gap-1 font-mono text-xs text-[var(--muted)]">
+                  {entry.sequenceCandidates.map((candidate) => (
+                    <span key={candidate.id}>
+                      {candidate.name} {candidate.score}
+                    </span>
+                  ))}
+                </div>
               ) : null}
             </div>
           ))
         )}
       </div>
     </section>
+  );
+}
+
+function EndingPanel({ state, onRestart }: { state: PlayerState; onRestart: () => void }) {
+  const label =
+    state.ascensionResult === "hidden_ending"
+      ? "隐藏结局"
+      : state.ascensionResult === "ascended"
+        ? "飞升成功"
+        : "飞升失败";
+
+  return (
+    <div className="grid gap-3 rounded-lg border border-[var(--line)] bg-[#eef2ea] p-4">
+      <p className="font-mono text-sm text-[var(--accent-dark)]">{label}</p>
+      <p className="text-sm leading-6 text-[var(--muted)]">
+        结局由人格、世界倾向、序列进度、隐藏属性、长期记忆和关键骰检共同决定。
+      </p>
+      <button
+        type="button"
+        onClick={onRestart}
+        className="w-fit rounded-lg bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition active:translate-y-px"
+      >
+        重新经历人生
+      </button>
+    </div>
   );
 }
