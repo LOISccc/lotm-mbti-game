@@ -209,6 +209,8 @@ export type DiceResult = {
   dc: number;
   outcome: DiceOutcome;
   reason: string;
+  worldResponse: string;
+  rewardText: string;
 };
 
 export type GameLogEntry = {

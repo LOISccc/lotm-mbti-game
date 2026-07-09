@@ -94,6 +94,9 @@ export function selectEvent(state: PlayerState): GameEvent {
 
 export function resolveTurn(state: PlayerState, event: GameEvent, choiceKey: ChoiceKey): EngineResult {
   const choice = event.choices[choiceKey];
+  if (!choice) {
+    throw new Error(`Invalid choice "${choiceKey}" for event "${event.id}"`);
+  }
   let nextState = applyEffects(state, choice.effects, event, choiceKey);
 
   let dice: DiceResult | undefined;
@@ -288,6 +291,7 @@ function rollDice(state: PlayerState, event: GameEvent, stat: StatKey, dc: numbe
   const roll = Math.floor(seededRandom(state.seed + state.turn * 173 + dc * 19 + event.id.length) * 20) + 1;
   const modifier = state.stats[stat] + getTagModifier(state, event);
   const finalValue = roll + modifier;
+  const outcome = getDiceOutcome(roll, finalValue, dc);
 
   return {
     eventId: event.id,
@@ -296,8 +300,10 @@ function rollDice(state: PlayerState, event: GameEvent, stat: StatKey, dc: numbe
     modifier,
     finalValue,
     dc,
-    outcome: getDiceOutcome(roll, finalValue, dc),
-    reason
+    outcome,
+    reason,
+    worldResponse: getDiceWorldResponse(outcome, event),
+    rewardText: getDiceRewardText(outcome)
   };
 }
 
@@ -309,6 +315,32 @@ function getDiceOutcome(roll: number, finalValue: number, dc: number): DiceOutco
     return "critical_success";
   }
   return finalValue >= dc ? "success" : "failure";
+}
+
+function getDiceWorldResponse(outcome: DiceOutcome, event: GameEvent) {
+  if (outcome === "critical_success") {
+    return `世界短暂地让出一条缝隙。${event.title} 留下的痕迹变得清晰。`;
+  }
+  if (outcome === "success") {
+    return "世界回应了这次选择，但没有解释原因。";
+  }
+  if (outcome === "failure") {
+    return "某些线索从手边滑开，房间里的现实感变得更重。";
+  }
+  return "一瞬间，我意识到自己误读了某个重要细节。世界没有惩罚我，只是记住了这次偏差。";
+}
+
+function getDiceRewardText(outcome: DiceOutcome) {
+  if (outcome === "critical_success") {
+    return "获得强烈命运修正，并记录一次关键成功。";
+  }
+  if (outcome === "success") {
+    return "检定通过，后续事件权重获得轻微修正。";
+  }
+  if (outcome === "failure") {
+    return "检定失败，部分隐藏压力保留到后续章节。";
+  }
+  return "大失败，理智受到轻微冲击，并记录一次关键失败。";
 }
 
 function pickAwakenedSequence(candidates: SequenceCandidate[], dice: DiceResult | undefined, state: PlayerState) {
@@ -400,7 +432,9 @@ function matchesTrigger(trigger: TriggerCondition | undefined, state: PlayerStat
 }
 
 function weightedPick(events: GameEvent[], state: PlayerState) {
-  const weighted = events.map((event) => ({
+  const unseenEvents = events.filter((event) => !state.seenEventIds.includes(event.id));
+  const pickableEvents = unseenEvents.length > 0 ? unseenEvents : events;
+  const weighted = pickableEvents.map((event) => ({
     event,
     weight: Math.max(1, getEventWeight(event, state))
   }));

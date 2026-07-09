@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Content Pool Roguelike",
-  description: "A deterministic MBTI, path, tier, and dice narrative roguelike prototype."
+  title: "诡秘人格成长 Roguelike",
+  description: "规则驱动的文字 Roguelike 原型。"
 };
 
 export default function RootLayout({

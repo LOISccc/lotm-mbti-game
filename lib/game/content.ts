@@ -1,4 +1,5 @@
 import type { GameEvent, SequenceProfile } from "./types";
+import { validateContentPool } from "./validation";
 
 export const SEQUENCE_PROFILES: SequenceProfile[] = [
   {
@@ -420,7 +421,7 @@ export const CONTENT_POOL: GameEvent[] = [
         }
       }
     },
-    followUpEvents: ["summer_003_old_coin"]
+    followUpEvents: ["summer_001_rain_bookstore"]
   },
   {
     id: "grad_destiny_first_dice",
@@ -1111,3 +1112,7 @@ export const CONTENT_POOL: GameEvent[] = [
     followUpEvents: []
   }
 ];
+
+if (process.env.NODE_ENV !== "production") {
+  validateContentPool(CONTENT_POOL);
+}
