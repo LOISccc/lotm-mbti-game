@@ -1,6 +1,6 @@
 # LOTM × MBTI Roguelike
 
-Version 2 prototype for a rule-driven narrative roguelike inspired by LOTM progression and hidden MBTI inference.
+Version 1 prototype for a rule-driven narrative roguelike inspired by LOTM progression and hidden MBTI inference.
 
 This is not an MBTI questionnaire and not an AI chatbot.
 
@@ -68,9 +68,9 @@ The Rule Engine is the source of truth. LLM output may narrate results, but must
 ## Important Files
 
 - `lib/game/types.ts`
-  - V2 type model for chapters, player state, events, choices, dice, memory, and sequences.
+  - V1 type model for chapters, player state, events, choices, dice, memory, and sequences.
 - `lib/game/content.ts`
-  - V2 content pool and 22 sequence profiles.
+  - V1 content pool and 22 sequence profiles.
 - `lib/game/engine.ts`
   - Rule engine for event selection, effects, dice, chapter progression, sequence awakening, and ascension.
 - `components/game-shell.tsx`
