@@ -19,7 +19,7 @@ Player choice
 
 The Rule Engine is the source of truth. LLM output may narrate results, but must not change numbers, dice, sequence, chapter, or ending.
 
-## V2 Features
+## V1 Features
 
 - Fixed chapter state machine:
   - Graduation
